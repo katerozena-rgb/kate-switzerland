@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Switzerland Adventure Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?fit=crop&w=1350&q=80') no-repeat center center fixed;
+        background-size: cover;
+    }
+
+    .quiz-container {
+        background-color: rgba(255,255,255,0.9);
+        padding: 2rem;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    h1 {
+        font-family: 'Pacifico', cursive;
+        color: #00796b;
+        margin-bottom: 1rem;
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+    }
+
+    .question {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: #004d40;
+        min-height: 60px;
+    }
+
+    .choices button {
+        display: block;
+        width: 100%;
+        margin: 0.5rem 0;
+        padding: 0.6rem;
+        font-size: 1rem;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background-color: #00796b;
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    .choices button:hover {
+        background-color: #004d40;
+        transform: scale(1.05);
+    }
+
+    .score, .timer {
+        font-size: 1.2rem;
+        margin-top: 1rem;
+        color: #d84315;
+        font-weight: bold;
+    }
+
+    .next-btn {
+        margin-top: 1rem;
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        background-color: #00796b;
+        color: white;
+        transition: background 0.3s;
+    }
+
+    .next-btn:hover {
+        background-color: #004d40;
+    }
+
+    .links {
+        margin-top: 20px;
+    }
+
+    .links a {
+        padding: 10px 20px;
+        color: white;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 5px;
+        margin-right: 10px;
+        transition: background 0.3s;
+    }
+
+    .links a.scratch { background-color: #ff5722; }
+    .links a.playagain { background-color: #00796b; border-radius: 10px; }
+
+    .links a:hover { opacity: 0.8; }
+
+    /* Confetti canvas */
+    #confetti-canvas {
+        position: fixed;
+        pointer-events: none;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+    }
+
+    @keyframes fadeIn {
+        from {opacity: 0; transform: translateY(-20px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div class="quiz-container">
+    <h1>Switzerland Adventure Quiz!</h1>
+    <div class="question-container">
+        <p class="question"></p>
+        <div class="choices"></div>
+    </div>
+    <button class="next-btn" style="display:none;">Next Question</button>
+    <p class="score"></p>
+    <p class="timer"></p>
+
+    <!-- Buttons -->
+    <div class="links">
+        <a href="scratch.html" target="_blank" class="scratch">Go To Travel Page</a>
+        <a href="" onclick="location.reload()" class="playagain">Play Quiz Again</a>
+    </div>
+</div>
+
+<script>
+// Quiz Data (no background changes)
+const quizData = [
+    {
+        question: "What is the capital of Switzerland?",
+        choices: ["Zurich", "Bern", "Geneva", "Lucerne"],
+        answer: "Bern"
+    },
+    {
+        question: "Which mountain is the highest in Switzerland?",
+        choices: ["Matterhorn", "Eiger", "Dufourspitze", "Jungfrau"],
+        answer: "Dufourspitze"
+    },
+    {
+        question: "Switzerland is famous for which type of food?",
+        choices: ["Cheese", "Sushi", "Tacos", "Baguette"],
+        answer: "Cheese"
+    }
+];
+
+let currentQuestion = 0;
+let score = 0;
+let timer;
+const timePerQuestion = 15;
+
+const questionEl = document.querySelector('.question');
+const choicesEl = document.querySelector('.choices');
+const nextBtn = document.querySelector('.next-btn');
+const scoreEl = document.querySelector('.score');
+const timerEl = document.querySelector('.timer');
+
+// Confetti setup
+const canvas = document.getElementById('confetti-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+let confettiParticles = [];
+
+function createConfetti() {
+    for(let i=0; i<150; i++){
+        confettiParticles.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height - canvas.height,
+            r: Math.random()*6+4,
+            d: Math.random()*10+2,
+            color: `hsl(${Math.random()*360},100%,50%)`,
+            tilt: Math.random()*10-10,
+            tiltAngleIncremental: Math.random()*0.07+0.05,
+            tiltAngle: 0
+        });
+    }
+}
+
+function drawConfetti() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    confettiParticles.forEach(p=>{
+        ctx.beginPath();
+        ctx.lineWidth = p.r/2;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + p.r/4, p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r/4);
+        ctx.stroke();
+    });
+    updateConfetti();
+}
+
+function updateConfetti() {
+    confettiParticles.forEach(p=>{
+        p.tiltAngle += p.tiltAngleIncremental;
+        p.y += (Math.cos(p.d) + 3 + p.r/2)/2;
+        p.tilt = Math.sin(p.tiltAngle) * 15;
+        if(p.y > canvas.height) p.y = -10;
+    });
+}
+
+function runConfetti(duration=3000) {
+    createConfetti();
+    const confettiInterval = setInterval(drawConfetti, 20);
+    setTimeout(()=>{
+        clearInterval(confettiInterval);
+        confettiParticles = [];
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+    }, duration);
+}
+
+// Quiz functions
+function startTimer() {
+    let timeLeft = timePerQuestion;
+    timerEl.textContent = `Time: ${timeLeft}s`;
+    timer = setInterval(()=>{
+        timeLeft--;
+        timerEl.textContent = `Time: ${timeLeft}s`;
+        if(timeLeft<=0){
+            clearInterval(timer);
+            Array.from(choicesEl.children).forEach(btn=>btn.disabled=true);
+            nextBtn.style.display="inline-block";
+        }
+    }, 1000);
+}
+
+function loadQuestion() {
+    clearInterval(timer);
+    nextBtn.style.display = "none";
+    const current = quizData[currentQuestion];
+
+    questionEl.textContent = current.question;
+    choicesEl.innerHTML = "";
+    current.choices.forEach(choice => {
+        const button = document.createElement('button');
+        button.textContent = choice;
+        button.addEventListener('click', selectAnswer);
+        choicesEl.appendChild(button);
+    });
+    startTimer();
+}
+
+function selectAnswer(e) {
+    clearInterval(timer);
+    const selected = e.target.textContent;
+    const correct = quizData[currentQuestion].answer;
+    if(selected===correct){
+        score++;
+        e.target.style.backgroundColor="#4caf50";
+        runConfetti();
+    } else {
+        e.target.style.backgroundColor="#f44336";
+    }
+    Array.from(choicesEl.children).forEach(btn=>btn.disabled=true);
+    nextBtn.style.display="inline-block";
+    scoreEl.textContent = `Score: ${score} / ${quizData.length}`;
+}
+
+nextBtn.addEventListener('click',()=>{
+    currentQuestion++;
+    if(currentQuestion<quizData.length){
+        loadQuestion();
+    } else {
+        questionEl.textContent = "🎉 Quiz Complete! 🏔️";
+        choicesEl.innerHTML = "";
+        nextBtn.style.display = "none";
+        timerEl.textContent="";
+    }
+});
+
+loadQuestion();
+</script>
+</body>
+</html>
