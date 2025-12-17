@@ -1,3 +1,7 @@
+body {
+    border: 5px solid red;
+}
+
 body{background-color: #BFEFFF}
 header{background-image: url(SCL_Swiss_Alps_Switzerland_001_3000x1500.jpg);
             background-size: cover;
